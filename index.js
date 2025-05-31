@@ -1,107 +1,69 @@
-const crypto = require('crypto');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
-const { exec } = require('child_process');
-const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys')
+const { Boom } = require('@hapi/boom')
+const qrcode = require('qrcode-terminal')
+const express = require('express')
+const crypto = require('crypto')
 
-// ✅ Web server pra manter Railway online
+const app = express()
+const PORT = process.env.PORT || 3000
+
 app.get('/', (req, res) => {
-    res.send('🟢 McFly System Down - Bot de Stress está ONLINE!');
-});
+    res.send('✅ McFly System WhatsApp Bot está online!')
+})
 
-app.listen(port, () => {
-    console.log(`✅ Web server rodando na porta ${port}`);
-});
+// Inicializa o WhatsApp
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('./sessions')
 
-// ✅ Bot WhatsApp
-async function connectToWhatsApp () {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    const sock = makeWASocket({ auth: state });
+    const sock = makeWASocket({
+        auth: state,
+        printQRInTerminal: true,
+        browser: ['McFlySystem', 'Chrome', '1.0.0']
+    })
+
+    sock.ev.on('creds.update', saveCreds)
 
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        const { connection, lastDisconnect, qr } = update
+
         if (qr) {
-            qrcode.generate(qr, { small: true });
+            console.log('📲 Scan this QR code to connect:')
+            qrcode.generate(qr, { small: true })
         }
+
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
-            if(shouldReconnect) {
-                connectToWhatsApp();
+            const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut
+            console.log('🔌 Connection closed due to', lastDisconnect.error, ', reconnecting', shouldReconnect)
+
+            if (shouldReconnect) {
+                connectToWhatsApp()
             }
-        } else if(connection === 'open') {
-            console.log('✅ Bot conectado no WhatsApp!');
+        } else if (connection === 'open') {
+            console.log('✅ Connected to WhatsApp')
         }
-    });
+    })
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('messages.upsert', async (m) => {
+        const msg = m.messages[0]
+        if (!msg.message) return
 
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-        const m = messages[0];
-        if (!m.message) return;
+        const sender = msg.key.remoteJid
+        const messageContent = msg.message.conversation || msg.message.extendedTextMessage?.text
 
-        const sender = m.key.remoteJid;
-        const msg = m.message.conversation || m.message.extendedTextMessage?.text;
+        console.log('💬 Mensagem recebida:', messageContent)
 
-        if (!msg) return;
-
-        console.log(`📨 Mensagem recebida: ${msg}`);
-
-        if (msg.startsWith('!start')) {
-            await sock.sendMessage(sender, { text: 
-`🔥 *McFly System Down*
-
-👨‍💻 Sou um bot de testes de stress DDoS.
-
-🛠️ *Comando disponível:*
-
-!stress (url) (tempo-em-segundos) (quantidade-de-threads)
-
-🧠 Exemplo:
-!stress https://seusite.com 60 50
-
-⚠️ *Uso exclusivo para testes em sites autorizados pela sua equipe.*`
-            });
+        if (messageContent === '!ping') {
+            await sock.sendMessage(sender, { text: '🏓 Pong!' })
         }
 
-        if (msg.startsWith('!stress')) {
-            const partes = msg.split(' ');
-
-            if (partes.length < 4) {
-                await sock.sendMessage(sender, { text: 
-`❌ Uso incorreto.
-
-🛠️ Formato correto:
-!stress (url) (tempo) (threads)
-
-🧠 Exemplo:
-!stress https://seusite.com 60 50`
-                });
-                return;
-            }
-
-            const url = partes[1];
-            const tempo = partes[2];
-            const threads = partes[3];
-
-            await sock.sendMessage(sender, { text: `🚀 Ataque iniciado em ${url} por ${tempo}s usando ${threads} threads.` });
-
-            // Executa o script Python
-            exec(`python3 stress.py ${url} ${tempo} ${threads}`, (error, stdout, stderr) => {
-                if (error) {
-                    sock.sendMessage(sender, { text: `❌ Erro: ${error.message}` });
-                    return;
-                }
-                if (stderr) {
-                    sock.sendMessage(sender, { text: `⚠️ Aviso: ${stderr}` });
-                    return;
-                }
-                sock.sendMessage(sender, { text: `✅ Ataque finalizado.` });
-            });
+        if (messageContent === '!info') {
+            await sock.sendMessage(sender, { text: '🚀 McFly System WhatsApp Bot Online' })
         }
-    });
+    })
 }
 
-connectToWhatsApp();
+connectToWhatsApp()
+
+app.listen(PORT, () => {
+    console.log(`🌐 Servidor HTTP rodando na porta ${PORT}`)
+})
