@@ -1,4 +1,9 @@
 {
+  "type": "module",
+  ... resto do seu package.json ...
+}
+
+{
   "name": "mcfly-system-down",
   "version": "1.0.0",
   "description": "Projeto McFly System Down - WhatsApp Bot + Stress Test",
