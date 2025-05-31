@@ -1,19 +1,16 @@
 {
-  "type": "module",
-}
-
-{
   "name": "mcfly-system-down",
   "version": "1.0.0",
-  "description": "Projeto McFly System Down - WhatsApp Bot + Stress Test",
+  "description": "Projeto de conexão WhatsApp com baileys",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [],
+  "author": "Seu Nome",
+  "license": "MIT",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.18"
-  },
-  "engines": {
-    "node": ">=16"
   }
 }
