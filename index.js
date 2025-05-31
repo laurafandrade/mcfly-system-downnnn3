@@ -1,35 +1,33 @@
-import makeWASocket from "@whiskeysockets/baileys";
+import { default: makeWASocket, useSingleFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
+import * as fs from "fs";
+
+const { state, saveState } = useSingleFileAuthState("./auth_info_baileys.json");
 
 async function startSock() {
-  const sock = makeWASocket();
+  const sock = makeWASocket({
+    auth: state
+  });
 
   sock.ev.on('connection.update', (update) => {
     const { connection, qr, lastDisconnect } = update;
-
     if (qr) {
-      console.log('🚨 Escaneie este QR code no seu WhatsApp:\n', qr);
+      console.log('Escaneie o QR Code abaixo:\n', qr);
     }
-
     if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== 401;
-      console.log('⚠️ Conexão fechada', lastDisconnect?.error?.toString() || '');
-      if (shouldReconnect) {
-        console.log('♻️ Tentando reconectar...');
+      const reason = lastDisconnect?.error?.output?.statusCode;
+      if (reason !== DisconnectReason.loggedOut) {
+        console.log('Tentando reconectar...');
         startSock();
       } else {
-        console.log('❌ Sessão desconectada, reautentique-se.');
+        console.log('Desconectado, logue novamente!');
       }
     }
-
     if (connection === 'open') {
-      console.log('✅ Conectado ao WhatsApp!');
+      console.log('Conectado ao WhatsApp!');
     }
   });
 
-  // Aqui você pode colocar eventos de mensagens ou outros eventos do Baileys, ex:
-  // sock.ev.on('messages.upsert', ({ messages }) => {
-  //   console.log('Nova mensagem:', messages[0]);
-  // });
+  sock.ev.on('creds.update', saveState);
 }
 
 startSock();
