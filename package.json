@@ -7,7 +7,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^4.0.0"  // Pode ajustar para versão exata que usa
+    "@whiskeysockets/baileys": "^4.0.0"  
   },
   "engines": {
     "node": ">=16"
