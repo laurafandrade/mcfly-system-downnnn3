@@ -1,7 +1,20 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const { exec } = require('child_process');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
+// ✅ Web server pra manter Railway online
+app.get('/', (req, res) => {
+    res.send('🟢 McFly System Down - Bot de Stress está ONLINE!');
+});
+
+app.listen(port, () => {
+    console.log(`✅ Web server rodando na porta ${port}`);
+});
+
+// ✅ Bot WhatsApp
 async function connectToWhatsApp () {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const sock = makeWASocket({ auth: state });
