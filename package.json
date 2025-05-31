@@ -1,13 +1,13 @@
 {
   "name": "mcfly-system-down",
   "version": "1.0.0",
-  "description": "Bot WhatsApp + servidor Express para testes de stress",
+  "description": "Bot WhatsApp com Baileys",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Pietro",
   "license": "ISC",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.18",
