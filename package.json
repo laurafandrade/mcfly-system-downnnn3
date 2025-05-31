@@ -1,17 +1,15 @@
 {
   "name": "mcfly-system-down",
   "version": "1.0.0",
-  "description": "Bot WhatsApp com Baileys",
+  "description": "Projeto McFly System Down - WhatsApp Bot + Stress Test",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [],
-  "author": "Pietro",
-  "license": "ISC",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
-    "express": "^4.18.2",
-    "qrcode-terminal": "^0.12.0"
+    "@whiskeysockets/baileys": "^4.0.0"  // Pode ajustar para versão exata que usa
+  },
+  "engines": {
+    "node": ">=16"
   }
 }
