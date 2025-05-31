@@ -1,69 +1,48 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys')
-const { Boom } = require('@hapi/boom')
-const qrcode = require('qrcode-terminal')
-const express = require('express')
-const crypto = require('crypto')
+import makeWASocket from '@whiskeysockets/baileys'
+import { Boom } from '@hapi/boom'
+import fs from 'fs'
 
-const app = express()
-const PORT = process.env.PORT || 3000
+const authFile = './auth_info_baileys.json'
 
-app.get('/', (req, res) => {
-    res.send('✅ McFly System WhatsApp Bot está online!')
-})
+async function start() {
+  let authInfo = undefined
 
-// Inicializa o WhatsApp
-async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('./sessions')
+  if (fs.existsSync(authFile)) {
+    authInfo = JSON.parse(fs.readFileSync(authFile, 'utf-8'))
+  }
 
-    const sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: true,
-        browser: ['McFlySystem', 'Chrome', '1.0.0']
-    })
+  const sock = makeWASocket({
+    auth: authInfo
+  })
 
-    sock.ev.on('creds.update', saveCreds)
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update
+    if (qr) {
+      console.log('Escaneie o QR Code abaixo:')
+      console.log(qr)
+    }
 
-        if (qr) {
-            console.log('📲 Scan this QR code to connect:')
-            qrcode.generate(qr, { small: true })
-        }
+    if (connection === 'close') {
+      const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== Boom.statusCodes['loggedOut']
 
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut
-            console.log('🔌 Connection closed due to', lastDisconnect.error, ', reconnecting', shouldReconnect)
+      console.log('Conexão fechada, motivo:', lastDisconnect.error)
+      if (shouldReconnect) {
+        start()
+      } else {
+        console.log('Usuário desconectou, reinicie o bot para reconectar')
+      }
+    }
 
-            if (shouldReconnect) {
-                connectToWhatsApp()
-            }
-        } else if (connection === 'open') {
-            console.log('✅ Connected to WhatsApp')
-        }
-    })
+    if (connection === 'open') {
+      console.log('Conectado ao WhatsApp!')
+    }
+  })
 
-    sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0]
-        if (!msg.message) return
-
-        const sender = msg.key.remoteJid
-        const messageContent = msg.message.conversation || msg.message.extendedTextMessage?.text
-
-        console.log('💬 Mensagem recebida:', messageContent)
-
-        if (messageContent === '!ping') {
-            await sock.sendMessage(sender, { text: '🏓 Pong!' })
-        }
-
-        if (messageContent === '!info') {
-            await sock.sendMessage(sender, { text: '🚀 McFly System WhatsApp Bot Online' })
-        }
-    })
+  sock.ev.on('creds.update', () => {
+    const auth = sock.authState
+    fs.writeFileSync(authFile, JSON.stringify(auth, null, 2))
+  })
 }
 
-connectToWhatsApp()
-
-app.listen(PORT, () => {
-    console.log(`🌐 Servidor HTTP rodando na porta ${PORT}`)
-})
+start()
